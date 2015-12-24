@@ -12,95 +12,104 @@ func TestFreezingTime(t *testing.T) {
   if err != nil {
     panic("date time parse failed")
   }
-  Freeze(now)
+  Freeze(Time(now))
 
   if !IsFrozen() {
     t.Error("Time should be frozen here, and was not.")
   }
-  if Now().UTC() != now {
+  if Now().UTC() != Time(now) {
     t.Error("Time should still be set to frozen time")
   }
   t.Logf("It is now %v (frozen)", Now().UTC())
   Unfreeze()
-  if Now().UTC() == now || IsFrozen() {
+  if Now().UTC() == Time(now) || IsFrozen() {
     t.Error("Time should no longer be frozen")
   }
   t.Logf("It is now %v (not frozen)", Now().UTC())
 }
 
-func TestAfter(t *testing.T) {
+func TestAfterFreezeMode(t *testing.T) {
   // test frozen functionality.
   start := Now()
   Freeze(Now())
-  <-After(10 * time.Millisecond)
+  <-After(10 * Millisecond)
   Unfreeze()
   elapsed := Now().Sub(start)
   t.Logf("Took %v", elapsed)
-  if elapsed >= 1*time.Millisecond {
+  if elapsed >= 1*Millisecond {
     t.Error("Took too long")
   }
+}
+
+func TestAfterNoFreeze(t *testing.T) {
   // test original functionality is restored
-  start = Now()
-  <-After(1 * time.Millisecond)
-  elapsed = Now().Sub(start)
+  start := Now()
+  <-After(1 * Millisecond)
+  elapsed := Now().Sub(start)
   t.Logf("Took %v", elapsed)
-  if elapsed > 2*time.Millisecond {
+  if elapsed > 2*Millisecond {
     t.Error("Took too long")
   }
-  if elapsed < 1*time.Millisecond {
+  if elapsed < 1*Millisecond {
     t.Error("Went too fast")
   }
 }
 
-func TestTick(t *testing.T) {
+func TestTickFreezeMode(t *testing.T) {
   // test frozen functionality.
   start := Now()
   Freeze(start)
-  c := Tick(10 * time.Millisecond)
+  c := Tick(10 * Millisecond)
   <-c
   <-c
   <-c
-  if !start.Add(40 * time.Millisecond).Equal(Now()) {
-    t.Errorf("Expected Tick to advance clock, did not. %v != %v", start.Add(40*time.Millisecond), Now())
+  if !start.Add(40 * Millisecond).Equal(Now()) {
+    t.Errorf("Expected Tick to advance clock, did not. %v != %v", start.Add(40*Millisecond), Now())
   }
   Unfreeze()
   elapsed := Now().Sub(start)
   t.Logf("Took %v", elapsed)
-  if elapsed >= 1*time.Millisecond {
+  if elapsed >= 1*Millisecond {
     t.Error("Took too long")
   }
+}
+
+func TestTickNoFreeze(t *testing.T) {
   // test original functionality is restored
-  start = Now()
-  c = Tick(1 * time.Millisecond)
+  start := Now()
+  c := Tick(1 * Millisecond)
   <-c
   <-c
   <-c
-  elapsed = Now().Sub(start)
+  elapsed := Now().Sub(start)
   t.Logf("Took %v", elapsed)
-  if elapsed > 4*time.Millisecond {
+  if elapsed > 4*Millisecond {
     t.Error("Took too long")
   }
-  if elapsed < 3*time.Millisecond {
+  if elapsed < 3*Millisecond {
     t.Error("Went too fast")
   }
 }
 
-func TestSleep(t *testing.T) {
-  start := time.Now()
+func TestSleepFreezeMode(t *testing.T) {
+  start := Now()
   Freeze(start)
-  Sleep(1 * time.Second)
+  Sleep(1 * Second)
   Unfreeze()
-  elapsed := time.Now().Sub(start)
-  if elapsed > 1*time.Millisecond {
+  elapsed := Now().Sub(start)
+  if elapsed > 1*Millisecond {
     t.Error("Took too long")
   }
-  start = Now()
-  Sleep(1 * time.Millisecond)
-  elapsed = Now().Sub(start)
-  if elapsed > 2*time.Millisecond {
+}
+
+func TestSleepNoFreeze(t *testing.T) {
+  start := Now()
+  Sleep(1 * Millisecond)
+  elapsed := Now().Sub(start)
+  if elapsed > 2*Millisecond {
     t.Error("Took too long")
   }
-  if elapsed < 1*time.Millisecond {
+  if elapsed < 1*Millisecond {
     t.Error("Went too fast")
   }
 }

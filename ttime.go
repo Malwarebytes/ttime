@@ -1,58 +1,49 @@
 package ttime
 
+// note: this is a fork from https://github.com/ssoroka/ttime
+// none of this was my idea and all the credit belongs to Steven
+
 import "time"
 
+
 var (
-  currentTime time.Time
+  currentTime Time
   timeFrozen  bool
 )
 
 type Duration time.Duration
-type Location time.Location
-type Month time.Month
-type ParseError time.ParseError
-type Ticker time.Ticker
+// type Location time.Location
+// type Month time.Month
+// type ParseError time.ParseError
+// type Ticker time.Ticker
 type Time time.Time
-type Timer time.Timer
-type Weekday time.Weekday
+// type Timer time.Timer
+// type Weekday time.Weekday
 
-var (
-  // import a ton of constants so we can act like the time library.
-  Parse           = time.Parse
-  ParseDuration   = time.ParseDuration
-  Date            = time.Date
-  ParseInLocation = time.ParseInLocation
-  FixedZone       = time.FixedZone
-  LoadLocation    = time.LoadLocation
-  Sunday          = time.Sunday
-  Monday          = time.Monday
-  Tuesday         = time.Tuesday
-  Wednesday       = time.Wednesday
-  Thursday        = time.Thursday
-  Friday          = time.Friday
-  Saturday        = time.Saturday
-  ANSIC           = time.ANSIC
-  UnixDate        = time.UnixDate
-  RubyDate        = time.RubyDate
-  RFC822          = time.RFC822
-  RFC822Z         = time.RFC822Z
-  RFC850          = time.RFC850
-  RFC1123         = time.RFC1123
-  RFC1123Z        = time.RFC1123Z
-  RFC3339         = time.RFC3339
-  RFC3339Nano     = time.RFC3339Nano
-  Kitchen         = time.Kitchen
-  Stamp           = time.Stamp
-  StampMilli      = time.StampMilli
-  StampMicro      = time.StampMicro
-  StampNano       = time.StampNano
-  // constants that I really should redefine:
-  NewTimer  = time.NewTimer
-  NewTicker = time.NewTicker
-  Unix      = time.Unix
-)
+// in order to make things work I think the most important
+// measure is not to "leak" any types from golang time
+// so this is just a start which still needs a lot of work
 
-func Freeze(t time.Time) {
+// Wrap the time.Time functions
+func (t Time) Add(d Duration) Time {
+  return Time(time.Time(t).Add(time.Duration(d)))
+}
+
+func (t Time) Sub(u Time) Duration {
+  return Duration(time.Time(t).Sub(time.Time(u)))
+}
+
+func (t Time) UTC() Time {
+  return Time(time.Time(t).UTC())
+}
+
+func (t Time) Equal(u Time) bool {
+  return time.Time(t).Equal(time.Time(u))
+}
+
+
+// existing ttime wrappers but in a none-leaky fashion
+func Freeze(t Time) {
   currentTime = t
   timeFrozen = true
 }
@@ -65,44 +56,44 @@ func IsFrozen() bool {
   return timeFrozen
 }
 
-func Now() time.Time {
+func Now() Time {
   if timeFrozen {
     return currentTime
   } else {
-    return time.Now()
+    return Time(time.Now())
   }
 }
 
-func After(d time.Duration) <-chan time.Time {
+func After(d Duration) <-chan Time {
+  c := make(chan Time, 1)
   if timeFrozen {
     currentTime = currentTime.Add(d)
-    c := make(chan time.Time, 1)
     c <- currentTime
-    return c
   } else {
-    return time.After(d)
+    c <- Time(<- time.After(time.Duration(d)))
   }
+  return c
 }
 
-func Tick(d time.Duration) <-chan time.Time {
-  if timeFrozen {
-    c := make(chan time.Time, 1)
-    go func() {
-      for {
+func Tick(d Duration) <-chan Time {
+  c := make(chan Time, 1)
+  go func() {
+    for {
+      if timeFrozen {
         currentTime = currentTime.Add(d)
         c <- currentTime
+      } else {
+        c <- Time(<- time.Tick(time.Duration(d)))
       }
-    }()
-    return c
-  } else {
-    return time.Tick(d)
-  }
+    }
+  }()
+  return c
 }
 
-func Sleep(d time.Duration) {
+func Sleep(d Duration) {
   if timeFrozen && d > 0 {
     currentTime = currentTime.Add(d)
   } else {
-    time.Sleep(d)
+    time.Sleep(time.Duration(d))
   }
 }
