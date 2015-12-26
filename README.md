@@ -1,8 +1,11 @@
+# ttime
+
+[![Build Status](https://travis-ci.org/finklabs/ttime.svg?branch=master)](https://travis-ci.org/finklabs/ttime)
+
+
 This is an experiment in making time easier to mock in Go tests.
 
 You should be able to alias the ttime library to time to avoid having to change all your time.Now() methods to ttime.Now() throughout your code.
-
-All methods return actual time.Time structs (if they were supposed to).
 
 example code:
 
