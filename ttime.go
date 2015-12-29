@@ -3,20 +3,26 @@ package ttime
 // note: this is a fork from https://github.com/ssoroka/ttime
 // none of this was my idea and all the credit belongs to Steven
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
+var mutex = &sync.Mutex{}
 
 var (
-  currentTime Time
-  timeFrozen  bool
+	currentTime Time
+	timeFrozen  bool
 )
 
 type Duration time.Duration
+
 // type Location time.Location
 // type Month time.Month
 // type ParseError time.ParseError
 // type Ticker time.Ticker
 type Time time.Time
+
 // type Timer time.Timer
 // type Weekday time.Weekday
 
@@ -26,74 +32,90 @@ type Time time.Time
 
 // Wrap the time.Time functions
 func (t Time) Add(d Duration) Time {
-  return Time(time.Time(t).Add(time.Duration(d)))
+	return Time(time.Time(t).Add(time.Duration(d)))
 }
 
 func (t Time) Sub(u Time) Duration {
-  return Duration(time.Time(t).Sub(time.Time(u)))
+	return Duration(time.Time(t).Sub(time.Time(u)))
 }
 
 func (t Time) UTC() Time {
-  return Time(time.Time(t).UTC())
+	return Time(time.Time(t).UTC())
 }
 
 func (t Time) Equal(u Time) bool {
-  return time.Time(t).Equal(time.Time(u))
+	return time.Time(t).Equal(time.Time(u))
 }
-
 
 // existing ttime wrappers but in a none-leaky fashion
 func Freeze(t Time) {
-  currentTime = t
-  timeFrozen = true
+	currentTime = t
+	timeFrozen = true
 }
 
 func Unfreeze() {
-  timeFrozen = false
+	timeFrozen = false
 }
 
 func IsFrozen() bool {
-  return timeFrozen
+	return timeFrozen
 }
 
 func Now() Time {
-  if timeFrozen {
-    return currentTime
-  } else {
-    return Time(time.Now())
-  }
+	if timeFrozen {
+		return currentTime
+	} else {
+		return Time(time.Now())
+	}
 }
 
 func After(d Duration) <-chan Time {
-  c := make(chan Time, 1)
-  if timeFrozen {
-    currentTime = currentTime.Add(d)
-    c <- currentTime
-  } else {
-    c <- Time(<- time.After(time.Duration(d)))
-  }
-  return c
+	c := make(chan Time, 1)
+	if timeFrozen {
+		mutex.Lock()
+		currentTime = currentTime.Add(d)
+		mutex.Unlock()
+		c <- currentTime
+	} else {
+		c <- Time(<-time.After(time.Duration(d)))
+	}
+	return c
 }
 
 func Tick(d Duration) <-chan Time {
-  c := make(chan Time, 1)
-  go func() {
-    for {
-      if timeFrozen {
-        currentTime = currentTime.Add(d)
-        c <- currentTime
-      } else {
-        c <- Time(<- time.Tick(time.Duration(d)))
-      }
-    }
-  }()
-  return c
+	c := make(chan Time, 1)
+	go func() {
+		for {
+			if timeFrozen {
+				mutex.Lock()
+				currentTime = currentTime.Add(d)
+				mutex.Unlock()
+				c <- currentTime
+			} else {
+				c <- Time(<-time.Tick(time.Duration(d)))
+			}
+		}
+	}()
+	return c
 }
 
 func Sleep(d Duration) {
-  if timeFrozen && d > 0 {
-    currentTime = currentTime.Add(d)
-  } else {
-    time.Sleep(time.Duration(d))
-  }
+	// thinking more about this...
+	// Add() does not appear to be the right strategy in the concurrent case.
+	// I have goroutines that all Sleep (and therefore Add to the clock). As a
+	// consequence I get distorted times and can not use timestamps in testing.
+	// For me this is bad since this is exactly what I want to do. Therefore
+	// I am going to work on a ttime version that behaves more realistic but
+	// with an "infinitely" fast clock.
+	// Now, enough with the wining! Fix it!
+	if timeFrozen {
+		if d > 0 {
+			// for now I might get away with a mutex
+			mutex.Lock()
+			currentTime = currentTime.Add(d)
+			mutex.Unlock()
+		}
+	} else {
+		time.Sleep(time.Duration(d))
+	}
 }
