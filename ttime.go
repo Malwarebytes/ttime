@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var mutex = &sync.Mutex{}
+var lock sync.RWMutex
 
 var (
 	currentTime Time
@@ -49,6 +49,8 @@ func (t Time) Equal(u Time) bool {
 
 // existing ttime wrappers but in a none-leaky fashion
 func Freeze(t Time) {
+	lock.Lock()
+	defer lock.Unlock()
 	currentTime = t
 	timeFrozen = true
 }
@@ -63,6 +65,8 @@ func IsFrozen() bool {
 
 func Now() Time {
 	if timeFrozen {
+		lock.RLock()
+		defer lock.RUnlock()
 		return currentTime
 	} else {
 		return Time(time.Now())
@@ -72,9 +76,9 @@ func Now() Time {
 func After(d Duration) <-chan Time {
 	c := make(chan Time, 1)
 	if timeFrozen {
-		mutex.Lock()
+		lock.Lock()
 		currentTime = currentTime.Add(d)
-		mutex.Unlock()
+		lock.Unlock()
 		c <- currentTime
 	} else {
 		c <- Time(<-time.After(time.Duration(d)))
@@ -87,9 +91,9 @@ func Tick(d Duration) <-chan Time {
 	go func() {
 		for {
 			if timeFrozen {
-				mutex.Lock()
+				lock.Lock()
 				currentTime = currentTime.Add(d)
-				mutex.Unlock()
+				lock.Unlock()
 				c <- currentTime
 			} else {
 				c <- Time(<-time.Tick(time.Duration(d)))
@@ -111,9 +115,9 @@ func Sleep(d Duration) {
 	if timeFrozen {
 		if d > 0 {
 			// for now I might get away with a mutex
-			mutex.Lock()
+			lock.Lock()
 			currentTime = currentTime.Add(d)
-			mutex.Unlock()
+			lock.Unlock()
 		}
 	} else {
 		time.Sleep(time.Duration(d))
