@@ -6,7 +6,6 @@ import (
 
 var (
 	// import a ton of constants so we can act like the time library.
-	Parse           = time.Parse
 	ParseDuration   = time.ParseDuration
 	Date            = time.Date
 	ParseInLocation = time.ParseInLocation

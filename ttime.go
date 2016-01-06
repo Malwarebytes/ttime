@@ -47,6 +47,18 @@ func (t Time) Equal(u Time) bool {
 	return time.Time(t).Equal(time.Time(u))
 }
 
+func (t Time) After(u Time) bool {
+	return time.Time(t).After(time.Time(u))
+}
+
+func (t Time) Before(u Time) bool {
+	return time.Time(t).Before(time.Time(u))
+}
+
+func (t Time) Format(layout string) string {
+	return time.Time(t).Format(layout)
+}
+
 // existing ttime wrappers but in a none-leaky fashion
 func Freeze(t Time) {
 	lock.Lock()
@@ -122,4 +134,9 @@ func Sleep(d Duration) {
 	} else {
 		time.Sleep(time.Duration(d))
 	}
+}
+
+func Parse(layout, value string) (Time, error) {
+	t, err := time.Parse(layout, value)
+	return Time(t), err
 }
