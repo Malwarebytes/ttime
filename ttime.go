@@ -59,6 +59,10 @@ func (t Time) Format(layout string) string {
 	return time.Time(t).Format(layout)
 }
 
+//func (t Time) AfterFunc(d Duration, f func()) *Timer {
+//	return time.AfterFunc(time.Duration(d), f)
+//}
+
 // existing ttime wrappers but in a none-leaky fashion
 func Freeze(t Time) {
 	lock.Lock()
