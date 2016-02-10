@@ -6,6 +6,7 @@ package ttime
 import (
 	"sync"
 	"time"
+	"strconv"
 )
 
 var lock sync.RWMutex
@@ -57,6 +58,11 @@ func (t Time) Before(u Time) bool {
 
 func (t Time) Format(layout string) string {
 	return time.Time(t).Format(layout)
+}
+
+// in RFC3339Nano format
+func (t Time) MarshalJSON() ([]byte, error) {
+	return time.Time(t).MarshalJSON()
 }
 
 //func (t Time) AfterFunc(d Duration, f func()) *Timer {
@@ -143,4 +149,10 @@ func Sleep(d Duration) {
 func Parse(layout, value string) (Time, error) {
 	t, err := time.Parse(layout, value)
 	return Time(t), err
+}
+
+// MarshalJSON formats the given Duration as float in [ms].
+func (d Duration) MarshalJSON() ([]byte, error) {
+	// This is a little "bonus" from maintaining my own time package
+	return strconv.AppendFloat(nil, float64(d)/float64(Millisecond), 'f', 6, 64), nil
 }
