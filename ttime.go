@@ -4,9 +4,9 @@ package ttime
 // none of this was my idea and all the credit belongs to Steven
 
 import (
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 var lock sync.RWMutex
