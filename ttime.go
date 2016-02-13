@@ -4,7 +4,6 @@ package ttime
 // none of this was my idea and all the credit belongs to Steven
 
 import (
-	"strconv"
 	"sync"
 	"time"
 )
@@ -60,6 +59,9 @@ func (t Time) Format(layout string) string {
 	return time.Time(t).Format(layout)
 }
 
+func (t Time) Year() int {
+	return time.Time(t).Year()
+}
 // in RFC3339Nano format
 func (t Time) MarshalJSON() ([]byte, error) {
 	return time.Time(t).MarshalJSON()
@@ -149,10 +151,4 @@ func Sleep(d Duration) {
 func Parse(layout, value string) (Time, error) {
 	t, err := time.Parse(layout, value)
 	return Time(t), err
-}
-
-// MarshalJSON formats the given Duration as float in [ms].
-func (d Duration) MarshalJSON() ([]byte, error) {
-	// This is a little "bonus" from maintaining my own time package
-	return strconv.AppendFloat(nil, float64(d)/float64(Millisecond), 'f', 6, 64), nil
 }
