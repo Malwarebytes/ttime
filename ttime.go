@@ -79,6 +79,16 @@ func Freeze(t Time) {
 	timeFrozen = true
 }
 
+// Unix returns t as a Unix time, the number of seconds elapsed
+// since January 1, 1970 UTC.
+func (t Time) Unix() int64 {
+	return time.Time(t).Unix()
+}
+
+func (t Time) UnixNano() int64 {
+	return time.Time(t).UnixNano()
+}
+
 func Unfreeze() {
 	timeFrozen = false
 }
